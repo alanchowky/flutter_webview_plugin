@@ -8,6 +8,7 @@ import android.content.Context;
 import android.net.http.SslError;
 import android.os.Build;
 import android.os.Handler;
+import android.os.Parcelable;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -50,6 +51,7 @@ class WebviewManager {
     private ValueCallback<Uri[]> mUploadMessageArray;
     private final static int FILECHOOSER_RESULTCODE = 1;
     private Uri fileUri;
+    private Uri cameraFileUri;
     private Uri videoUri;
 
     private long getFileSize(Uri fileUri) {
@@ -67,13 +69,23 @@ class WebviewManager {
                 if (requestCode == FILECHOOSER_RESULTCODE) {
                     Uri[] results = null;
                     if (resultCode == Activity.RESULT_OK) {
-                        if (fileUri != null && getFileSize(fileUri) > 0) {
-                            results = new Uri[]{fileUri};
-                        } else if (videoUri != null && getFileSize(videoUri) > 0) {
-                            results = new Uri[]{videoUri};
-                        } else if (intent != null) {
+
+                        if (intent != null) {
                             results = getSelectedFiles(intent);
                         }
+
+                        if (results == null) {
+                            if (fileUri != null && getFileSize(fileUri) > 0) {
+                                results = new Uri[]{fileUri};
+                            } else if (videoUri != null && getFileSize(videoUri) > 0) {
+                                results = new Uri[]{videoUri};
+                            } else if (intent != null) {
+                                results = getSelectedFiles(intent);
+                            }
+                        }
+                    }
+                    if (cameraFileUri != null&& getFileSize(cameraFileUri) > 0) {
+                        results = new Uri[]{cameraFileUri};
                     }
                     if (mUploadMessageArray != null) {
                         mUploadMessageArray.onReceiveValue(results);
@@ -239,16 +251,19 @@ class WebviewManager {
                     final boolean allowMultiple = fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE;
                     contentSelectionIntent = fileChooserParams.createIntent();
                     contentSelectionIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultiple);
+                    //TODO: unable to use the accept file here.....
+                    contentSelectionIntent.setType("*/*");
                 } else {
                     contentSelectionIntent = new Intent(Intent.ACTION_GET_CONTENT);
                     contentSelectionIntent.addCategory(Intent.CATEGORY_OPENABLE);
                     contentSelectionIntent.setType("*/*");
                 }
-                Intent[] intentArray = intentList.toArray(new Intent[intentList.size()]);
-
+                //Intent[] intentArray = intentList.toArray(new Intent[intentList.size()]);
                 Intent chooserIntent = new Intent(Intent.ACTION_CHOOSER);
                 chooserIntent.putExtra(Intent.EXTRA_INTENT, contentSelectionIntent);
-                chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, intentArray);
+                //chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, intentArray);
+                chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, intentList.toArray(new Parcelable[intentList.size()]));
+
                 activity.startActivityForResult(chooserIntent, FILECHOOSER_RESULTCODE);
                 return true;
             }
